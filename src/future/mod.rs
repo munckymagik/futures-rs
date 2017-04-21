@@ -3,6 +3,7 @@
 //! This module contains the `Future` trait and a number of adaptors for this
 //! trait. See the crate docs, and the docs for `Future`, for full detail.
 
+use core::fmt;
 use core::result;
 
 // Primitive futures
@@ -887,6 +888,25 @@ pub trait Future {
     {
         shared::new(self)
     }
+
+    /// Execute this future "in the background" on the provided spawn handled.
+    ///
+    /// This function will consume this future and pass it to the `spawn` value
+    /// provided. This typically means that this future will be driven to
+    /// completion in the background, and once completed the future will be
+    /// deallocated.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the instance of `Spawn` provided is unable
+    /// to spawn the future `f` provided.
+    fn background<S>(self, spawn: &S)
+        where S: Spawn<Self>,
+              Self: Future<Item = (), Error = ()> + Sized,
+    {
+        spawn.spawn(self).expect("failed to execute future in background")
+    }
+
 }
 
 impl<'a, F: ?Sized + Future> Future for &'a mut F {
@@ -956,4 +976,86 @@ pub trait FutureFrom<T>: Sized {
 
     /// Consume the given value, beginning the conversion.
     fn future_from(T) -> Self::Future;
+}
+
+/// A trait for types which can spawn fresh futures.
+///
+/// This trait is typically implemented for "executors", or those types which
+/// can execute futures to completion. Futures passed to `Spawn::spawn`
+/// typically get turned into a *task* and are then driven to completion.
+///
+/// On spawn, the executor takes ownership of the future and becomes responsible
+/// to call `Future::poll()` whenever a readiness notification is raised.
+pub trait Spawn<F: Future<Item = (), Error = ()>> {
+    /// Spawns a future to run on this `Spawn`.
+    ///
+    /// This function will return immediately, and schedule the future `future`
+    /// to run on `self`. The details of scheduling and execution are left to
+    /// the implementations of `Spawn`.
+    ///
+    /// # Errors
+    ///
+    /// Implementors of this trait are allowed to reject accepting this future
+    /// as well. This can happen for various reason such as:
+    ///
+    /// * The executor is shut down
+    /// * The executor has run out of capacity to execute futures
+    ///
+    /// The decision is left to the caller how to work with this form of error.
+    /// The error returned transfers ownership of the future back to the caller.
+    fn spawn(&self, future: F) -> Result<(), SpawnError<F>>;
+}
+
+/// Errors returned from the `Spawn::spawn` function.
+pub struct SpawnError<F> {
+    future: F,
+    kind: SpawnErrorKind,
+}
+
+/// Kinds of errors that can be returned from the `Spawn::spawn` function.
+///
+/// Executors which may not always be able to accept a future may return one of
+/// these errors, indicating why it was unable to spawn a future.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum SpawnErrorKind {
+    /// This executor has shut down and will no longer accept new futures to
+    /// spawn.
+    Shutdown,
+
+    /// This executor has no more capacity to run more futures. Other futures
+    /// need to finish before this executor can accept another.
+    NoCapacity,
+
+    #[doc(hidden)]
+    __Nonexhaustive,
+}
+
+impl<F> SpawnError<F> {
+    /// Create a new `SpawnError`
+    pub fn new(kind: SpawnErrorKind, future: F) -> SpawnError<F> {
+        SpawnError {
+            future: future,
+            kind: kind,
+        }
+    }
+
+    /// Returns the associated reason for the error
+    pub fn kind(&self) -> SpawnErrorKind {
+        self.kind
+    }
+
+    /// Consumes self and returns the original future that was spawned.
+    pub fn into_future(self) -> F {
+        self.future
+    }
+}
+
+impl<F> fmt::Debug for SpawnError<F> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.kind {
+            SpawnErrorKind::Shutdown => "executor has shut down".fmt(f),
+            SpawnErrorKind::NoCapacity => "executor has no more capacity".fmt(f),
+            SpawnErrorKind::__Nonexhaustive => panic!(),
+        }
+    }
 }

@@ -46,7 +46,7 @@ use std::sync::mpsc;
 use std::thread;
 
 use futures::{IntoFuture, Future, Poll, Async};
-use futures::future::lazy;
+use futures::future::{lazy, Spawn};
 use futures::sync::oneshot::{channel, Sender, Receiver};
 use futures::executor::{self, Run, Executor};
 
@@ -217,6 +217,14 @@ impl CpuPool {
               R::Error: Send + 'static,
     {
         self.spawn(lazy(f))
+    }
+}
+
+impl<F> Spawn<F> for CpuPool
+    where F: Future<Item = (), Error = ()> + Send + 'static,
+{
+    fn spawn(&self, future: F) {
+        executor::spawn(future).execute(self.inner.clone());
     }
 }
 
