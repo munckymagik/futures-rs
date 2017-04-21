@@ -7,7 +7,7 @@ use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
 use {Future, Poll, Async};
-use task2::{self as task, Task};
+use task::{self, Task};
 
 /// Creates a new futures-aware, one-shot channel.
 ///

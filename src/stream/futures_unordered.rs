@@ -3,7 +3,7 @@ use stream::Stream;
 use poll::Poll;
 use Async;
 use stack::{Stack, Drain};
-use task2::UnparkContext;
+use task::UnparkContext;
 
 use std::prelude::v1::*;
 

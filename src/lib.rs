@@ -196,25 +196,16 @@ pub use future::{
     SelectNext, Then
 };
 
-if_std! {
+// if_std! {
     mod lock;
     mod task_impl;
-    mod task_impl2;
     mod stack;
 
-    #[deprecated(since = "0.1.11", note = "use task2 module instead")]
-    #[cfg(feature = "with-deprecated")]
-    #[doc(hidden)]
     pub mod executor;
-
-    #[deprecated(since = "0.1.11", note = "use task2 module instead")]
-    #[cfg(feature = "with-deprecated")]
-    #[doc(hidden)]
     pub mod task;
 
     pub mod sync;
     pub mod unsync;
-    pub mod task2;
 
     #[doc(hidden)]
     #[deprecated(since = "0.1.4", note = "use sync::oneshot::channel instead")]
@@ -245,4 +236,4 @@ if_std! {
     #[deprecated(since = "0.1.4", note = "import through the future module instead")]
     #[cfg(feature = "with-deprecated")]
     pub use future::{SelectAll, SelectAllNext, Collect, SelectOk};
-}
+// }

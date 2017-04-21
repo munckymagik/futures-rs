@@ -14,7 +14,7 @@
 //! ```
 
 use {Future, Poll, Async};
-use task2::{self as task, Task, Spawn, Unpark};
+use task::{self, Task, Spawn, Unpark};
 
 use std::{fmt, mem, ops};
 use std::cell::UnsafeCell;
@@ -115,7 +115,7 @@ impl<F> Shared<F> where F: Future {
     fn complete(&self) {
         unsafe { *self.inner.future.get() = None };
         self.inner.unparker.state.store(COMPLETE, SeqCst);
-        self.inner.unparker.unpark(0);
+        self.inner.unparker.unpark();
     }
 }
 
@@ -164,7 +164,7 @@ impl<F> Future for Shared<F>
             let unpark: Arc<Unpark> = self.inner.unparker.clone();
 
             // Poll the future
-            match unsafe { (*self.inner.future.get()).as_mut().unwrap().poll_future(&unpark, 0) } {
+            match unsafe { (*self.inner.future.get()).as_mut().unwrap().poll_future(unpark) } {
                 Ok(Async::NotReady) => {
                     // Not ready, try to release the handle
                     match self.inner.unparker.state.compare_and_swap(POLLING, IDLE, SeqCst) {
@@ -222,7 +222,7 @@ impl<F> Drop for Shared<F> where F: Future {
 }
 
 impl Unpark for Unparker {
-    fn unpark(&self, _: u64) {
+    fn unpark(&self) {
         self.state.compare_and_swap(POLLING, REPOLL, SeqCst);
 
         let waiters = mem::replace(&mut *self.waiters.lock().unwrap(), HashMap::new());

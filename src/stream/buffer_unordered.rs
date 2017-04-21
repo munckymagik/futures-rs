@@ -2,7 +2,7 @@ use std::prelude::v1::*;
 use std::fmt;
 use std::mem;
 
-use task2::UnparkContext;
+use task::UnparkContext;
 
 use {Async, IntoFuture, Poll, Future};
 use stream::{Stream, Fuse};

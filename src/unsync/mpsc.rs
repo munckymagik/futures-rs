@@ -12,7 +12,7 @@ use std::fmt;
 use std::mem;
 use std::rc::{Rc, Weak};
 
-use task2::{self as task, Task};
+use task::{self, Task};
 use {Async, AsyncSink, Poll, StartSend, Sink, Stream};
 
 /// Creates a bounded in-memory channel with buffered storage.

@@ -7,7 +7,7 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::SeqCst;
 
 use {Async, Future, Poll};
-use task2::{self as task, Task};
+use task::{self, Task};
 
 /// A type of futures-powered synchronization primitive which is a mutex between
 /// two possible owners.

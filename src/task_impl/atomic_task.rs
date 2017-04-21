@@ -52,12 +52,12 @@ impl AtomicTask {
 
     /// The caller must ensure mutual exclusion
     pub unsafe fn park(&self) {
-        if let Some(ref task) = *self.task.get() {
-            if task.is_current() {
+        //if let Some(ref task) = *self.task.get() {
+            //if task.is_current() {
                 // Nothing more to do
-                return;
-            }
-        }
+                //return;
+            //}
+        //}
 
         // Get a new task handle
         let task = super::park();
@@ -115,7 +115,7 @@ impl AtomicTask {
                 if actual == curr {
                     // Notify the task
                     unsafe {
-                        if let Some(ref task) = (*self.task.get()) {
+                        if let Some(ref task) = *self.task.get() {
                             task.unpark();
                         }
                     }
